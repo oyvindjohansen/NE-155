@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 def init_A(n):
     A = np.zeros((n, n))
@@ -11,16 +12,23 @@ def init_A(n):
     return np.matrix(A)
 
 def init_b(n):
-    b = np.zeros((n, 1))
-    for i in np.arange(1, n):
-        b[i] = i
-    return np.matrix(b)
+    return np.matrix(np.arange(0, n)).transpose()
 
 A = init_A(5)
 b = init_b(5)
+
 eigvals = np.linalg.eig(A)[0]
 condnr = max(eigvals)/min(eigvals)
+print(condnr)
+
 x = A.I*b
 y = np.linalg.solve(A, b)
-print(x)
-print(y)
+n=np.arange(0,len(x))
+
+figure, axis = plt.subplots()
+axis.plot(n, x, 'bo', label="Inverse method")
+axis.plot(n, y, 'ro', label="Numpy method")
+plt.xlabel(r"$i$")
+plt.ylabel(r"$x_i$")
+plt.legend()
+plt.title(r'Problem 4d')
