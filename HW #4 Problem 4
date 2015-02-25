@@ -14,8 +14,8 @@ def init_A(n):
 def init_b(n):
     return np.matrix(np.arange(0, n)).transpose()
 
-A = init_A(5)
-b = init_b(5)
+A = init_A(100)
+b = init_b(100)
 
 eigvals = np.linalg.eig(A)[0]
 condnr = max(eigvals)/min(eigvals)
