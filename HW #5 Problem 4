@@ -1,0 +1,92 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+def init_A(n):
+    A = np.zeros((n,n))
+    for i in np.arange(0,n):
+        for j in np.arange(0,n):
+            if i == j:
+                A[i,j] = 4
+            elif abs(i-j) == 1:
+                A[i,j] = -1
+    return A
+
+def low_sum(A, x, i):
+    #A is a nxn matrix
+    #x is a vector of length n
+    low_sum = 0
+    for j in np.arange(0, i):
+        low_sum += A[i, j]*x[j]
+    return low_sum
+
+def up_sum(A, x, i):
+    #A is a nxn matrix
+    #x is a vector of length n
+    up_sum = 0
+    for j in np.arange(i + 1, len(A)):
+        up_sum += A[i, j]*x[j]
+    return up_sum
+
+def Jacobi(A, x0, b, eps):
+    #A is a matrix of size nxn
+    #b is vector on right hand side, type: np.array, length n
+    #x0 is initial vector, type: np.array, length n
+    #eps is absolute tolerance
+    k = 0
+    xk1 = x0.copy()
+    xk = xk1.copy()
+    while k == 0 or np.linalg.norm(xk1-xk)/np.linalg.norm(xk1) > eps:
+        xk = xk1.copy()
+        for i in np.arange(0, len(x0)):
+            xk1[i] = 1 / A[i,i] * (b[i] - low_sum(A, xk, i) - up_sum(A, xk, i))
+        k += 1    
+    return (xk1, k)
+
+def Gauss_Seidel(A, x0, b, eps):
+    #A is a matrix of size nxn
+    #b is vector on right hand side, type: np.array, length n
+    #x0 is initial vector, type: np.array, length n
+    #eps is absolute tolerance
+    k = 0
+    xk1 = x0.copy()
+    xk = xk1.copy()
+    while k == 0 or np.linalg.norm(xk1-xk)/np.linalg.norm(xk1) > eps:
+        xk = xk1.copy()
+        for i in np.arange(0, len(x0)):
+            xk1[i] = 1 / A[i,i] * (b[i] - low_sum(A, xk1, i) - up_sum(A, xk, i))
+        k += 1
+    return (xk1, k)
+
+def SOR(A, x0, b, eps, w):
+    #A is a matrix of size nxn
+    #b is vector on right hand side, type: np.array, length n
+    #x0 is initial vector, type: np.array, length n
+    #eps is absolute tolerance
+    #w control parameter
+    k = 0
+    xk1 = x0.copy()
+    xk = xk1.copy()
+    while k == 0 or np.linalg.norm(xk1-xk)/np.linalg.norm(xk1) > eps:
+        xk = xk1.copy()
+        for i in np.arange(0, len(x0)):
+            xk1[i] = (1 - w) * xk[i] + w / A[i,i] * (b[i] - low_sum(A, xk1, i) - up_sum(A, xk, i))
+        k += 1
+    return (xk1, k)
+
+A = init_A(5)
+b = 100*np.ones(5)
+x0 = np.zeros(5)
+print("Jacobi #iterations (eps = E-6):          " + str(Jacobi(A, x0, b, 10**(-6))[1]))
+print("Gauss-Seidel #iterations (eps = E-6):    " + str(Gauss_Seidel(A, x0, b, 10**(-6))[1]))
+print("SOR #iterations (eps = E-6):             " + str(SOR(A, x0, b, 10**(-6), 1.1)[1]))
+print("Jacobi #iterations (eps = E-8):          " + str(Jacobi(A, x0, b, 10**(-8))[1]))
+print("Gauss-Seidel #iterations (eps = E-8):    " + str(Gauss_Seidel(A, x0, b, 10**(-8))[1]))
+print("SOR #iterations (eps = E-8):             " + str(SOR(A, x0, b, 10**(-8), 1.1)[1]))
+
+n = np.linspace(1.05, 1.06, 1000)
+y = [SOR(A, x0, b, 10**(-15), i)[1] for i in n]
+figure, axis = plt.subplots()
+axis.plot(n, y, 'bo')
+plt.xlabel(r"$\omega_{opt}$")
+plt.ylabel(r"Iterations")
+plt.title(r'Determining $\omega_{opt}$')
