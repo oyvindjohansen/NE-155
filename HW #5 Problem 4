@@ -87,6 +87,6 @@ n = np.linspace(1.05, 1.06, 1000)
 y = [SOR(A, x0, b, 10**(-15), i)[1] for i in n]
 figure, axis = plt.subplots()
 axis.plot(n, y, 'bo')
-plt.xlabel(r"$\omega_{opt}$")
+plt.xlabel(r"$\omega$")
 plt.ylabel(r"Iterations")
 plt.title(r'Determining $\omega_{opt}$')
