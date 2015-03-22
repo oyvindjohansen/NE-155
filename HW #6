@@ -150,13 +150,22 @@ def Problem3():
     S_list = [h[i]**2/D*S0*np.ones(n[i]-1) for i in range(len(h))]
     A_list = [init_A(n[i]-1, h[i], np.sqrt(D/Sig)) for i in range(len(h))]
     phi_center_list = [gauss_elim(A_list[i], S_list[i]) for i in range(len(h))]
+    phi_list = [np.zeros(n[i]+1) for i in range(len(n))]
     x_list = [np.zeros(n[i]+1) for i in range(len(n))]
     rel_error_list = [np.zeros(n[i]+1) for i in range(len(n))]
-    
+    figure1, axis1 = plt.subplots()
+
     for i in range(len(h)):
         x_list[i] = [-a+h[i]*j for j in np.arange(len(phi_center_list[i])+2)]
+        phi_list[i][1:-1] = phi_center_list[i]
+        axis1.plot(x_list[i], phi_list[i], label='h = ' + str(h[i]) + ' cm')
         rel_error_list[i] = abs(phi_center_list[i]-analytical_sol(S0, Sig, D, a, x_list[i][1:-1]))/abs(phi_center_list[i])
         
+    plt.legend()
+    plt.ylabel(r"$\phi(x)$")
+    plt.xlabel(r"$x$ (cm)")
+    plt.title(r'Numerical solutions to the diffusion equation')
+    
     max_rel_error = [np.linalg.norm(rel_error_list[i]) for i in range(len(rel_error_list))]
     
     figure2, axis2 = plt.subplots()
