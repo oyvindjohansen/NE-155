@@ -1,0 +1,254 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+def init_A(n, h, L):
+    A = np.zeros((n,n))
+    for i in np.arange(0,n):
+        for j in np.arange(0,n):
+            if i == j:
+                A[i,j] = 2 + (h/L)**2
+            elif abs(i-j) == 1:
+                A[i,j] = -1
+    return A
+    
+def init_A2(D, h, Sig_a, n):
+    #This is for the A-matrix in problem 5 & 6
+    A = np.zeros((n, n))
+    for i in np.arange(0,n):
+        for j in np.arange(0,n):
+            if i == j:
+                A[i,j] = 2*D/h**2 + Sig_a
+            elif abs(i-j) == 1:
+                A[i,j] = -D/h**2
+    return np.asmatrix(A)
+    
+def analytical_sol(S0, Sig, D, a, x):
+    L=np.sqrt(D/Sig)
+    return S0/Sig*(1-np.cosh(x/L)/np.cosh(a/L))
+
+def gauss_elim(A, b):
+    #A is a tri-diag matrix
+    #b is a vector
+    u = np.zeros(len(b))
+    v = np.zeros(len(b))
+    x = np.zeros(len(b))
+    u[0] = A[0,0]
+    v[0] = b[0]
+    for i in np.arange(1, len(b)):
+        u[i] = A[i,i] - A[i, i-1]*A[i-1, i]/u[i-1]
+        v[i] = b[i] - A[i, i-1]*v[i-1]/u[i-1]
+    x[-1] = v[-1]/u[-1]
+    for i in np.arange(0, len(b)-1)[::-1]:
+        x[i] = 1/u[i]*(v[i] -A[i, i+1]*x[i+1] )
+    return x
+    
+def low_sum(A, x, i):
+    #A is a nxn matrix
+    #x is a vector of length n
+    low_sum = 0
+    for j in np.arange(0, i):
+        low_sum += A[i, j]*x[j]
+    return low_sum
+
+def up_sum(A, x, i):
+    #A is a nxn matrix
+    #x is a vector of length n
+    up_sum = 0
+    for j in np.arange(i + 1, len(A)):
+        up_sum += A[i, j]*x[j]
+    return up_sum
+
+def Jacobi(A, x0, b, eps):
+    #A is a matrix of size nxn
+    #b is vector on right hand side, type: np.array, length n
+    #x0 is initial vector, type: np.array, length n
+    #eps is absolute tolerance
+    k = 0
+    xk1 = x0.copy()
+    xk = xk1.copy()
+    while k == 0 or np.linalg.norm(xk1-xk) > eps:
+        xk = xk1.copy()
+        for i in np.arange(0, len(x0)):
+            xk1[i] = 1 / A[i,i] * (b[i] - low_sum(A, xk, i) - up_sum(A, xk, i))
+        k += 1    
+    return (xk1, k)
+
+def Gauss_Seidel(A, x0, b, eps):
+    #A is a matrix of size nxn
+    #b is vector on right hand side, type: np.array, length n
+    #x0 is initial vector, type: np.array, length n
+    #eps is absolute tolerance
+    k = 0
+    xk1 = x0.copy()
+    xk = xk1.copy()
+    while k == 0 or np.linalg.norm(xk1-xk) > eps:
+        xk = xk1.copy()
+        for i in np.arange(0, len(x0)):
+            xk1[i] = 1 / A[i,i] * (b[i] - low_sum(A, xk1, i) - up_sum(A, xk, i))
+        k += 1
+    return (xk1, k)
+
+def SOR(A, x0, b, eps, w):
+    #A is a matrix of size nxn
+    #b is vector on right hand side, type: np.array, length n
+    #x0 is initial vector, type: np.array, length n
+    #eps is absolute tolerance
+    #w control parameter
+    k = 0
+    xk1 = x0.copy()
+    xk = xk1.copy()
+    while k == 0 or np.linalg.norm(xk1-xk) > eps:
+        xk = xk1.copy()
+        for i in np.arange(0, len(x0)):
+            xk1[i] = (1 - w) * xk[i] + w / A[i,i] * (b[i] - low_sum(A, xk1, i) - up_sum(A, xk, i))
+        k += 1
+    return (xk1, k)
+    
+def Power_Iteration(k0, x0, A, h, nuSig, eps1, eps2):
+    x0 = x0/np.linalg.norm(x0)
+    x_m = x0.copy()
+    k_m = k0
+    Q_m = nuSig*x_m
+    x_m1 = Gauss_Seidel(A, x_m, nuSig*x_m/k_m, eps2)[0]
+    Q_m1 = nuSig*x_m1
+    k_m1 = k_m*(sum(Q_m1)/sum(Q_m))
+    n = 1
+    while (abs((k_m1-k_m)/k_m1) > eps1) or (np.max(abs((max(x_m1-x_m))/x_m1)) > eps2):
+        x_m = x_m1.copy()
+        Q_m = nuSig*x_m.copy()
+        k_m = k_m1
+        x_m1 = Gauss_Seidel(A, x_m, nuSig*x_m/k_m, eps2)[0]
+        Q_m1 = nuSig*x_m1.copy()
+        k_m1 = k_m*(sum(Q_m1)/sum(Q_m))
+        n += 1
+    return (x_m1/np.linalg.norm(x_m1), k_m1, n)
+
+def Problem2():
+    A = init_A(79, 0.1, np.sqrt(1/0.2))
+    S = 0.08*np.ones(79)
+    phi_center = gauss_elim(A, S)
+    phi = np.zeros(81)
+    phi[1:-1] = phi_center
+    x = [-4+0.1*i for i in np.arange(len(phi))]
+    figure, axis = plt.subplots()
+    axis.plot(x, phi, 'bo', label="Numerical")
+    axis.plot(x, analytical_sol(8, 0.2, 1, 4, x), 'r', label="Analytical")
+    plt.legend()
+    plt.ylabel(r"$\phi(x)$")
+    plt.xlabel(r"$x$ (cm)")
+    plt.title(r'Analytical and numerical solutions to the diffusion equation')
+
+def Problem3():
+    a = 4
+    D = 1
+    S0 = 8
+    Sig = 0.2
+    h = [1, 0.5, 0.1, 0.05, 0.01]
+    n = [2*a/i for i in h]
+
+    S_list = [h[i]**2/D*S0*np.ones(n[i]-1) for i in range(len(h))]
+    A_list = [init_A(n[i]-1, h[i], np.sqrt(D/Sig)) for i in range(len(h))]
+    phi_center_list = [gauss_elim(A_list[i], S_list[i]) for i in range(len(h))]
+    phi_list = [np.zeros(n[i]+1) for i in range(len(n))]
+    x_list = [np.zeros(n[i]+1) for i in range(len(n))]
+    rel_error_list = [np.zeros(n[i]+1) for i in range(len(n))]
+    figure1, axis1 = plt.subplots()
+
+    for i in range(len(h)):
+        x_list[i] = [-a+h[i]*j for j in np.arange(len(phi_center_list[i])+2)]
+        phi_list[i][1:-1] = phi_center_list[i]
+        axis1.plot(x_list[i], phi_list[i], label='h = ' + str(h[i]) + ' cm')
+        rel_error_list[i] = abs(phi_center_list[i]-analytical_sol(S0, Sig, D, a, x_list[i][1:-1]))/abs(phi_center_list[i])
+        
+    plt.legend()
+    plt.ylabel(r"$\phi(x)$")
+    plt.xlabel(r"$x$ (cm)")
+    plt.title(r'Numerical solutions to the diffusion equation')
+    
+    max_rel_error = [np.linalg.norm(rel_error_list[i]) for i in range(len(rel_error_list))]
+    
+    figure2, axis2 = plt.subplots()
+    axis2.plot(h, max_rel_error, 'bo')
+    plt.ylabel(r"Relative error")
+    plt.xlabel(r"$h$")
+    plt.title(r'Max relative error as function of mesh lenght $h$')
+
+def Problem4():
+    a = 4
+    D = 1
+    S0 = 8
+    Sig = 0.2
+    h = [1, 0.5, 0.1, 0.05, 0.01]
+    n = [2*a/i for i in h]
+    S_list = [h[i]**2/D*S0*np.ones(n[i]-1) for i in range(len(h))]
+    A_list = [init_A(n[i]-1, h[i], np.sqrt(D/Sig)) for i in range(len(h))]
+    
+    kJacobiE3 = [Jacobi(A_list[i], np.zeros(len(A_list[i])), S_list[i], 10**(-3))[1] for i in range(len(h)-1)]
+    kGSE3 = [Gauss_Seidel(A_list[i], np.zeros(len(A_list[i])), S_list[i], 10**(-3))[1] for i in range(len(h)-1)]
+    kSORE3 = [SOR(A_list[i], np.zeros(len(A_list[i])), S_list[i], 10**(-3), 1.2)[1] for i in range(len(h)-1)]
+    kJacobiE5 = [Jacobi(A_list[i], np.zeros(len(A_list[i])), S_list[i], 10**(-5))[1] for i in range(len(h)-1)]
+    kGSE5 = [Gauss_Seidel(A_list[i], np.zeros(len(A_list[i])), S_list[i], 10**(-5))[1] for i in range(len(h)-1)]
+    kSORE5 = [SOR(A_list[i], np.zeros(len(A_list[i])), S_list[i], 10**(-5), 1.2)[1] for i in range(len(h)-1)]
+    print('Jacobi with 10^(-3) error tolerance: ' + str(kJacobiE3))
+    print('Gauss-Seidel with 10^(-3) error tolerance: ' + str(kGSE3))
+    print('SOR with 10^(-3) error tolerance: ' + str(kSORE3))
+    print('Jacobi with 10^(-5) error tolerance: ' + str(kJacobiE5))
+    print('Gauss-Seidel with 10^(-5) error tolerance: ' + str(kGSE5))
+    print('SOR with 10^(-5) error tolerance: ' + str(kSORE5))
+
+
+def Problem5(Plot=True):
+    a = 4
+    D = 1
+    Sig_a = 0.7
+    nuSigf = 0.6
+    A2 = init_A2(D, 0.1, Sig_a, 2*a/0.1-1)
+    phi5_total = np.zeros(2*a/0.1+1)
+    phi5, k5, Ni = Power_Iteration(1, np.ones(len(A2)), A2, 0.1, nuSigf, 10**(-4), 10**(-4))
+    phi5_total[1:-1] = phi5
+    x_list = [-a+0.1*j for j in np.arange(len(phi5_total))]
+    print('Eigenvalue (iterative method): ' + str(k5))
+    print('#Power Iterations: ' + str(Ni))
+    if Plot:
+        figure4, axis4 = plt.subplots()
+        axis4.plot(x_list, phi5_total)
+        plt.ylabel(r"$\phi(x)$")
+        plt.xlabel(r"$x$ (cm)")
+        plt.title(r'Power iteration solution to diffusion equation (eigenvalue form)')
+    return phi5_total
+
+def Problem6():
+    a = 4
+    D = 1
+    Sig_a = 0.7
+    nuSigf = 0.6
+    A2 = init_A2(D, 0.1, Sig_a, 2*a/0.1-1)
+    F = nuSigf*np.matrix(np.identity(2*a/0.1-1))
+    A2inv = np.linalg.inv(A2)
+    B = A2inv*F
+    (k6, phi6) = np.linalg.eig(np.asarray(B))
+    index = np.argmax(k6)
+    print('Eigenvalue (direct method): ' + str(k6[index]))
+    phi6_total = np.zeros(2*a/0.1+1)
+    phi6_total[1:-1] = -phi6[:,index] #linalg.eig spits out a negative eigenvector, flip sign
+    phi5_total = Problem5(Plot=False)
+    x_list = [-a+0.1*j for j in np.arange(len(phi6_total))]
+    figure5, axis5 = plt.subplots()
+    axis5.plot(x_list, phi6_total, label='Direct')
+    axis5.plot(x_list, phi5_total, 'r', label='Iterative')
+    plt.legend()
+    plt.ylabel(r"$\phi(x)$")
+    plt.xlabel(r"$x$ (cm)")
+    plt.title(r'Direct solution to diffusion equation (eigenvalue form)')
+    print('Relative error: ' + str(np.linalg.norm((phi6_total[1:-1]-phi5_total[1:-1])/phi6_total[1:-1])))
+    print('Absolute error: ' + str(np.linalg.norm((phi6_total-phi5_total))))
+
+#Uncomment the lines below to see the result for the different problems
+#Note that problem 4 might take a long time
+#If problem 4 isn't working, comment lines in the code to look at one at a time
+
+#Problem2()
+#Problem3()
+#Problem4()
+#Problem5()
+#Problem6()
