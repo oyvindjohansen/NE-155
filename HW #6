@@ -205,7 +205,6 @@ def Problem5(Plot=True):
     A2 = init_A2(D, 0.1, Sig_a, 2*a/0.1-1)
     phi5_total = np.zeros(2*a/0.1+1)
     phi5, k5, Ni = Power_Iteration(1, np.ones(len(A2)), A2, 0.1, nuSigf, 10**(-4), 10**(-4))
-    #k5, phi5, Ni = powerit(np.ones(len(A2)), 1, A2, nuSigf*np.ones(len(A2)), nuSigf, 10**(-4), 10**(-4))
     phi5_total[1:-1] = phi5
     x_list = [-a+0.1*j for j in np.arange(len(phi5_total))]
     print('Eigenvalue (iterative method): ' + str(k5))
