@@ -113,13 +113,12 @@ def Power_Iteration(k0, x0, A, h, nuSig, eps1, eps2):
     Q_m1 = nuSig*x_m1
     k_m1 = k_m*(sum(Q_m1)/sum(Q_m))
     n = 1
-    while (abs((k_m1-k_m)/k_m1) > eps1) or (abs((max(x_m1-x_m))/x_m1[np.argmax(x_m1-x_m)]) > eps2):
+    while (abs((k_m1-k_m)/k_m1) > eps1) or (np.max(abs((max(x_m1-x_m))/x_m1)) > eps2):
         x_m = x_m1.copy()
-        Q_m = nuSig*x_m
+        Q_m = nuSig*x_m.copy()
         k_m = k_m1
         x_m1 = Gauss_Seidel(A, x_m, nuSig*x_m/k_m, eps2)[0]
-        x_m1 = x_m1/np.linalg.norm(x_m1)
-        Q_m1 = nuSig*x_m1
+        Q_m1 = nuSig*x_m1.copy()
         k_m1 = k_m*(sum(Q_m1)/sum(Q_m))
         n += 1
     return (x_m1/np.linalg.norm(x_m1), k_m1, n)
@@ -198,7 +197,7 @@ def Problem4():
     print('SOR with 10^(-5) error tolerance: ' + str(kSORE5))
 
 
-def Problem5():
+def Problem5(Plot=True):
     a = 4
     D = 1
     Sig_a = 0.7
@@ -206,15 +205,17 @@ def Problem5():
     A2 = init_A2(D, 0.1, Sig_a, 2*a/0.1-1)
     phi5_total = np.zeros(2*a/0.1+1)
     phi5, k5, Ni = Power_Iteration(1, np.ones(len(A2)), A2, 0.1, nuSigf, 10**(-4), 10**(-4))
+    #k5, phi5, Ni = powerit(np.ones(len(A2)), 1, A2, nuSigf*np.ones(len(A2)), nuSigf, 10**(-4), 10**(-4))
     phi5_total[1:-1] = phi5
     x_list = [-a+0.1*j for j in np.arange(len(phi5_total))]
     print('Eigenvalue (iterative method): ' + str(k5))
     print('#Power Iterations: ' + str(Ni))
-    figure4, axis4 = plt.subplots()
-    axis4.plot(x_list, phi5_total)
-    plt.ylabel(r"$\phi(x)$")
-    plt.xlabel(r"$x$ (cm)")
-    plt.title(r'Power iteration solution to diffusion equation (eigenvalue form)')
+    if Plot:
+        figure4, axis4 = plt.subplots()
+        axis4.plot(x_list, phi5_total)
+        plt.ylabel(r"$\phi(x)$")
+        plt.xlabel(r"$x$ (cm)")
+        plt.title(r'Power iteration solution to diffusion equation (eigenvalue form)')
     return phi5_total
 
 def Problem6():
@@ -231,7 +232,7 @@ def Problem6():
     print('Eigenvalue (direct method): ' + str(k6[index]))
     phi6_total = np.zeros(2*a/0.1+1)
     phi6_total[1:-1] = -phi6[:,index] #linalg.eig spits out a negative eigenvector, flip sign
-    phi5_total = Problem5()
+    phi5_total = Problem5(Plot=False)
     x_list = [-a+0.1*j for j in np.arange(len(phi6_total))]
     figure5, axis5 = plt.subplots()
     axis5.plot(x_list, phi6_total, label='Direct')
