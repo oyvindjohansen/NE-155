@@ -82,11 +82,38 @@ def groundstate_lattice(Nx, Ny):
 
 def Plot_Magnetization(lattice, Jx, Jy, N_iterations):
     meanMagn = []
-    Tvec = np.linspace(0.1, 5)
+    meanMagn2 = []
+    meanE = []
+    meanE2 = []
+    Tvec = np.linspace(0.1, 5, num = 100)
+    meanFrom = int((N_iterations)/2) #What part of data to take the mean of. Don't want to include beginning as it's not in equilibrium
     for T in Tvec:
-        meanMagn.append(MonteCarlo_Plot(lattice, Jx, Jy, T, N_iterations, Plot=False))
-    fig, ax = plt.subplots()
-    ax.plot(Tvec, np.abs(meanMagn), 'bo')
+        print(T) #Calculations take a long time. Ok to see where in the process it is
+        totalE, spinTot = MonteCarlo_Plot(lattice, Jx, Jy, T, N_iterations, Plot=False)
+        meanMagn.append(np.mean(spinTot[-meanFrom:])/(len(lattice)*len(lattice[0])))
+        meanMagn2.append(np.mean(spinTot[-meanFrom:]*spinTot[-meanFrom:])/(len(lattice)*len(lattice[0]))**2)
+        meanE.append(np.mean(totalE[-meanFrom:])/(len(lattice)*len(lattice[0])))
+        meanE2.append(np.mean(totalE[-meanFrom:]*totalE[-meanFrom:])/(len(lattice)*len(lattice[0]))**2)
+    Susceptibility = [(meanMagn2[i]-meanMagn[i]**2)/Tvec[i]**2 for i in np.arange(len(Tvec))]
+    Cv = [(meanE2[i]-meanE[i]**2)/Tvec[i] for i in np.arange(len(Tvec))]
+    fig1, ax1 = plt.subplots()
+    ax1.scatter(Tvec, np.abs(meanMagn))
+    ax1.set_title('Magnetization')
+    fig2, ax2 = plt.subplots()
+    ax2.scatter(Tvec, meanE)
+    ax2.set_title('Energy')
+    fig3, ax3 = plt.subplots()
+    ax3.scatter(Tvec, Cv)
+    ax3.set_title('Heat Capacity')
+    fig4, ax4 = plt.subplots()
+    ax4.scatter(Tvec, Susceptibility)
+    ax4.set_title('Susceptibility')
+    np.savetxt('MeanMagn5x5Nit50000.txt', meanMagn, delimiter=',')
+    np.savetxt('Mean2Magn5x5Nit50000.txt', meanMagn2, delimiter=',')
+    np.savetxt('MeanE5x5Nit50000.txt', meanE, delimiter=',')
+    np.savetxt('Mean2E5x5Nit50000.txt', meanE2, delimiter=',')
+#    fig, ax = plt.subplots()
+#    ax.plot(Tvec, np.abs(meanMagn), 'bo')
     
 def MonteCarlo_Plot(lattice, Jx, Jy, T, N_iterations, Plot=True):
     spinTot = []
@@ -97,10 +124,10 @@ def MonteCarlo_Plot(lattice, Jx, Jy, T, N_iterations, Plot=True):
     spinTot.append(spinTot_i)
     for i in np.arange(N_iterations):
         new_lattice = MonteCarlo_Sweep(new_lattice, Jx, Jy, T)
-#        Etot_i, spinTot_i = totalEnergy(new_lattice, Jx, Jy)
-#        totalE.append(Etot_i)
-#        spinTot.append(spinTot_i)
-        spinTot.append(sum([sum(new_lattice[i]) for i in np.arange(len(lattice))]))
+        Etot_i, spinTot_i = totalEnergy(new_lattice, Jx, Jy)
+        totalE.append(Etot_i)
+        spinTot.append(spinTot_i)
+        #spinTot.append(sum([sum(new_lattice[i]) for i in np.arange(len(lattice))]))
     if Plot:
         fig1 = plt.figure()
         ax1 = fig1.add_subplot(211)
@@ -110,12 +137,11 @@ def MonteCarlo_Plot(lattice, Jx, Jy, T, N_iterations, Plot=True):
         plt.show()
         fig3, ax3 = plt.subplots()
         ax3.plot(np.arange(N_iterations+1), spinTot)
-    meanFrom = int((N_iterations)/5)
-    #print(spinTot[-meanFrom:])
-    return np.mean(spinTot[-meanFrom:])/(len(lattice)*len(lattice[0]))
+#    meanFrom = int((N_iterations)/5)
+    return np.array(totalE), np.array(spinTot)
     
 chessboard = initialize_chessboard_lattice(50, 50)
-random_lattice = initialize_random_lattice(10, 10)
+random_lattice = initialize_random_lattice(5, 5)
 gs_lattice = groundstate_lattice(50, 50)
 #figure, axis = plt.subplots()
 #plt.imshow(random_lattice, cmap='Greys', interpolation='nearest')
@@ -129,5 +155,7 @@ gs_lattice = groundstate_lattice(50, 50)
 #ani = animation.FuncAnimation(fig, imagesFunc, interval=5000, blit=True, repeat_delay=1000)
 #plt.show()
 
-#MonteCarlo_Plot(random_lattice, -1, -1, 0.8, 100000)
+#MonteCarlo_Plot(random_lattice, 1, 1, 2, 20000)
 Plot_Magnetization(random_lattice, 1, 1, 50000)
+
+#meanMagn5x5=np.loadtxt('MeanMagn5x5Nit50000.txt', delimiter=',')
