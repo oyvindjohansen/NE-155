@@ -48,12 +48,15 @@ def MonteCarlo_Sweep(lattice, Jx, Jy, h, T):
     else:
         return lattice
         
-def Metropolis_Hastings(lattice, Jx, Jy, h, T, N_iterations, Plot=True):
+def Metropolis_Hastings(lattice, Jx, Jy, h, T, N_equilibrium, N_sampling, Plot=True):
+    #N_equilibrium is the amount of iterations to equilibrate the initial system
+    #N_sampling is the amount of iterations used to get data samples from the equilibrated system
     #Does N_iterations Monte Carlo sweeps
     #Returns the total energy and magnetization of the final state if Plot is false
     #If Plot is true, plots the initial & final system, as well as magnetization as a function of iterations
     new_lattice = lattice.copy()    
     spinTot = []
+    N_iterations = N_equilibrium + N_sampling
     if Plot:
         spinTot.append(sum([sum(new_lattice[i]) for i in np.arange(len(lattice))]))
     else:
@@ -65,51 +68,55 @@ def Metropolis_Hastings(lattice, Jx, Jy, h, T, N_iterations, Plot=True):
         new_lattice = MonteCarlo_Sweep(new_lattice, Jx, Jy, h, T)
         if Plot:
             spinTot.append(sum([sum(new_lattice[i]) for i in np.arange(len(lattice))]))
-        else:
+        elif i >= N_equilibrium:
             Etot_i, spinTot_i = totalEnergy(new_lattice, Jx, Jy, h)
             totalE.append(Etot_i)
             spinTot.append(spinTot_i)   
     if Plot:
         fig1 = plt.figure()
-        ax1 = fig1.add_subplot(211)
+        ax1 = fig1.add_subplot(121)
         ax1.imshow(lattice, cmap = "Greys" , vmin=-1, vmax=1, interpolation='None')
         ax1.axes.get_xaxis().set_ticks([])
         ax1.axes.get_yaxis().set_ticks([])
         ax1.set_title('Initial lattice configuration')
-        ax2 = fig1.add_subplot(212)
-        ax2.imshow(new_lattice, cmap = "Greys" , vmin=-1, vmax=1, interpolation='None')
+        ax2 = fig1.add_subplot(122)
+        im = ax2.imshow(new_lattice, cmap = "Greys" , vmin=-1, vmax=1, interpolation='None')
         ax2.axes.get_xaxis().set_ticks([])
         ax2.axes.get_yaxis().set_ticks([])
         ax2.set_title('Final lattice configuration')
+        fig1.subplots_adjust(right=0.8)
+        cbar_ax = fig1.add_axes([0.85, 0.293, 0.05, 0.41])
+        fig1.colorbar(im, cax=cbar_ax, ticks=[-1, 1])
         plt.show()
-        fig3, ax3 = plt.subplots()
-        ax3.plot(np.arange(N_iterations+1), spinTot)
-        ax3.set_xlabel('Number of iterations')
-        ax3.set_ylabel('Total spin of system')
-        ax3.set_title('Magnetization as a function of iterations')
+        fig, ax = plt.subplots()
+        ax.plot(np.arange(N_iterations+1), spinTot)
+        ax.set_xlabel('Number of iterations')
+        ax.set_ylabel('Total spin of system')
+        ax.set_title('Magnetization as a function of iterations')
     else:
         return np.array(totalE), np.array(spinTot)
 
-def MagnetizationAndEnergy_TempFunc(lattice, Jx, Jy, h, N_iterations):
+def MagnetizationAndEnergy_TempFunc(lattice, Jx, Jy, h, Tvec, N_equilibrium, N_sampling):
     meanMagn = []
     meanMagn2 = []
     meanE = []
     meanE2 = []
-    Tvec = np.linspace(0.1, 5, num = 100)
-    meanFrom = int((N_iterations)/2) #What part of data to take the mean of. Don't want to include beginning as it's not in equilibrium
     for T in Tvec:
         print(T) #Calculations take a long time. Ok to see where in the process it is
-        totalE, spinTot = Metropolis_Hastings(lattice, Jx, Jy, h, T, N_iterations, Plot=False)
-        meanMagn.append(np.mean(spinTot[-meanFrom:])/(len(lattice)*len(lattice[0])))
-        meanMagn2.append(np.mean(spinTot[-meanFrom:]*spinTot[-meanFrom:])/(len(lattice)*len(lattice[0]))**2)
-        meanE.append(np.mean(totalE[-meanFrom:])/(len(lattice)*len(lattice[0])))
-        meanE2.append(np.mean(totalE[-meanFrom:]*totalE[-meanFrom:])/(len(lattice)*len(lattice[0]))**2)
+        totalE, spinTot = Metropolis_Hastings(lattice, Jx, Jy, h, T, N_equilibrium, N_sampling, Plot=False)
+        meanMagn.append(np.mean(spinTot)/(len(lattice)*len(lattice[0])))
+        meanMagn2.append(np.mean(spinTot*spinTot)/(len(lattice)*len(lattice[0]))**2)
+        meanE.append(np.mean(totalE)/(len(lattice)*len(lattice[0])))
+        meanE2.append(np.mean(totalE*totalE)/(len(lattice)*len(lattice[0]))**2)
     #Susceptibility = [(meanMagn2[i]-meanMagn[i]**2)/Tvec[i]**2 for i in np.arange(len(Tvec))]
     #Cv = [(meanE2[i]-meanE[i]**2)/Tvec[i] for i in np.arange(len(Tvec))]
-    np.savetxt('MeanMagn15x15Nit225000.txt', meanMagn, delimiter=',')
-    np.savetxt('Mean2Magn15x15Nit225000.txt', meanMagn2, delimiter=',')
-    np.savetxt('MeanE15x15Nit225000.txt', meanE, delimiter=',')
-    np.savetxt('Mean2E15x15Nit225000.txt', meanE2, delimiter=',')
+    Nx = len(lattice[0])
+    Ny = len(lattice)
+    N_iterations = N_equilibrium + N_sampling
+    np.savetxt('MeanMagn' + str(Nx) + 'x' + str(Ny) + 'Nit' + str(N_iterations) + '.txt', meanMagn, delimiter=',')
+    np.savetxt('Mean2Magn' + str(Nx) + 'x' + str(Ny) + 'Nit' + str(N_iterations) + '.txt', meanMagn2, delimiter=',')
+    np.savetxt('MeanE' + str(Nx) + 'x' + str(Ny) + 'Nit' + str(N_iterations) + '.txt', meanE, delimiter=',')
+    np.savetxt('Mean2E' + str(Nx) + 'x' + str(Ny) + 'Nit' + str(N_iterations) + '.txt', meanE2, delimiter=',')
     
 def initialize_chessboard_lattice(Nx, Ny):
     lattice = np.ones((Ny, Nx))
@@ -127,11 +134,12 @@ def initialize_groundstate_lattice(Nx, Ny):
     return np.ones((Ny, Nx))
     
 chessboard = initialize_chessboard_lattice(50, 50)
-random_lattice = initialize_random_lattice(30, 30)
+random_lattice = initialize_random_lattice(10, 10)
 gs_lattice = initialize_groundstate_lattice(20, 20)
 
-#Metropolis_Hastings(random_lattice, -1, -1, 4, 0.8, 10000)
-#MagnetizationAndEnergy_TempFunc(random_lattice, 1, 1, 225000)
+Tvec = np.linspace(0.1, 5, num = 100)
+#Metropolis_Hastings(random_lattice, -1, -1, 0, 0.8, 1000, 1000)
+MagnetizationAndEnergy_TempFunc(random_lattice, 1, 1, 0, Tvec, 100000, 125000)
 
 meanMagn5x5=np.loadtxt('MeanMagn5x5Nit50000.txt', delimiter=',')
 meanMagn10x10=np.loadtxt('MeanMagn10x10Nit200000.txt', delimiter=',')
@@ -146,7 +154,6 @@ meanE25x5=np.loadtxt('Mean2E5x5Nit50000.txt', delimiter=',')
 meanE210x10=np.loadtxt('Mean2E10x10Nit200000.txt', delimiter=',')
 meanE215x15=np.loadtxt('Mean2E15x15Nit225000.txt', delimiter=',')
 
-Tvec = np.linspace(0.1, 5, num = 100)
 #Tvec2 = np.linspace(0.1, 5, num = 100000)
 
 Cv5x5 = [(meanE25x5[i]-meanE5x5[i]**2)/Tvec[i] for i in np.arange(len(Tvec))]
