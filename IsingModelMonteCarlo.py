@@ -41,12 +41,9 @@ def MonteCarlo_Sweep(lattice, Jx, Jy, h, T):
     x = np.random.randint(0, Nx)
     y = np.random.randint(0, Ny)
     delE = deltaE(lattice, Jx, Jy, h, x, y)
-    randnr=np.random.rand()
-    if randnr < np.exp(-delE/T):
+    if np.random.rand() < np.exp(-delE/T):
         lattice[y, x] = -lattice[y, x]
-        return lattice
-    else:
-        return lattice
+    return lattice
         
 def Metropolis_Hastings(lattice, Jx, Jy, h, T, N_equilibrium, N_sampling, Plot=True):
     #N_equilibrium is the amount of iterations to equilibrate the initial system
@@ -118,6 +115,9 @@ def MagnetizationAndEnergy_TempFunc(lattice, Jx, Jy, h, Tvec, N_equilibrium, N_s
     np.savetxt('MeanE' + str(Nx) + 'x' + str(Ny) + 'Nit' + str(N_iterations) + '.txt', meanE, delimiter=',')
     np.savetxt('Mean2E' + str(Nx) + 'x' + str(Ny) + 'Nit' + str(N_iterations) + '.txt', meanE2, delimiter=',')
     
+def initialize_groundstate_lattice(Nx, Ny):
+    return np.ones((Ny, Nx))
+
 def initialize_chessboard_lattice(Nx, Ny):
     lattice = np.ones((Ny, Nx))
     for i in np.arange(Nx):
@@ -130,17 +130,34 @@ def initialize_random_lattice(Nx, Ny):
     lattice = (2.0*np.random.randint(2, size=Nx*Ny)-1.0).reshape(Ny,Nx)
     return lattice
     
-def initialize_groundstate_lattice(Nx, Ny):
-    return np.ones((Ny, Nx))
+def HeatCapacity(meanEnergy, meanEnergy2, Tvec, Nsize):
+    #meanEnergy is an array containing the values <E>
+    #meanEnergy2 is an array containing the values <E^2>
+    #Tvec is an array with the temperature corresponding to each entry in meanEnergy and meanEnergy2
+    #Nsize is how many particles there are in the system
+    #Returns the heat capacity per particle as a function of temperature
+    mE = np.array(meanEnergy)
+    mE2 = np.array(meanEnergy2)
+    Cv = [Nsize*(mE2[i]-mE[i]**2)/Tvec[i]**2 for i in np.arange(len(Tvec))]
+    return np.array(Cv)
+    
+def MagneticSusceptibility(meanMagn, meanMagn2, Tvec, Nsize):
+    #meanMagnetization is an array containing the values <M>
+    #meanMagnetization2 is an array containing the values <M^2>
+    #Returns the magnetic susceptibility per particle as a function of temperature
+    mM = np.array(meanMagn)
+    mM2 = np.array(meanMagn2)
+    Chi = [Nsize*(mM2[i]-mM[i]**2)/Tvec[i] for i in np.arange(len(Tvec))]
+    return np.array(Chi)
     
 chessboard = initialize_chessboard_lattice(50, 50)
 random_lattice = initialize_random_lattice(10, 10)
 gs_lattice = initialize_groundstate_lattice(20, 20)
 
 Tvec = np.linspace(0.1, 5, num = 100)
-#Metropolis_Hastings(random_lattice, -1, -1, 0, 0.8, 1000, 1000)
-MagnetizationAndEnergy_TempFunc(random_lattice, 1, 1, 0, Tvec, 100000, 125000)
-
+#Metropolis_Hastings(random_lattice, 1, 1, 0, 0.8, 0, 1)
+#MagnetizationAndEnergy_TempFunc(random_lattice, 1, 1, 0, Tvec, 100000, 125000)
+#
 meanMagn5x5=np.loadtxt('MeanMagn5x5Nit50000.txt', delimiter=',')
 meanMagn10x10=np.loadtxt('MeanMagn10x10Nit200000.txt', delimiter=',')
 meanMagn15x15=np.loadtxt('MeanMagn15x15Nit225000.txt', delimiter=',')
@@ -156,21 +173,25 @@ meanE215x15=np.loadtxt('Mean2E15x15Nit225000.txt', delimiter=',')
 
 #Tvec2 = np.linspace(0.1, 5, num = 100000)
 
-Cv5x5 = [(meanE25x5[i]-meanE5x5[i]**2)/Tvec[i] for i in np.arange(len(Tvec))]
-Cv10x10 = [(meanE210x10[i]-meanE10x10[i]**2)/Tvec[i] for i in np.arange(len(Tvec))]
-Cv15x15 = [(meanE215x15[i]-meanE15x15[i]**2)/Tvec[i] for i in np.arange(len(Tvec))]
+Susc5x5 = HeatCapacity(meanMagn5x5, mean2Magn5x5, Tvec, 25)
+Susc10x10 = HeatCapacity(meanMagn10x10, mean2Magn10x10, Tvec, 100)
+Susc15x15 = HeatCapacity(meanMagn15x15, mean2Magn15x15, Tvec, 225)
 
-Susc5x5 = [(mean2Magn5x5[i]-meanMagn5x5[i]**2)/Tvec[i]**2 for i in np.arange(len(Tvec))]
-Susc10x10 = [(mean2Magn10x10[i]-meanMagn10x10[i]**2)/Tvec[i]**2 for i in np.arange(len(Tvec))]
-Susc15x15 = [(mean2Magn15x15[i]-meanMagn15x15[i]**2)/Tvec[i]**2 for i in np.arange(len(Tvec))]
+Cv5x5 = MagneticSusceptibility(meanE5x5, meanE25x5, Tvec, 25)
+Cv10x10 = MagneticSusceptibility(meanE10x10, meanE210x10, Tvec, 100)
+Cv15x15 = MagneticSusceptibility(meanE15x15, meanE215x15, Tvec, 225)
 
 #theoryMag = [(1-1/np.sinh(2/x)**4)**(1/8) for x in Tvec2]
 fig, ax = plt.subplots()
 #ax.plot(Tvec, abs(meanMagn5x5), 'ro', label='5x5')
 #ax.plot(Tvec, abs(meanMagn10x10), 'bo', label='10x10')
-ax.plot(Tvec, abs(meanMagn15x15), 'go', label='15x15')
+#ax.plot(Tvec, abs(meanMagn15x15), 'go', label='15x15')
 #ax.plot(Tvec2, theoryMag, 'b')
-#ax.plot(Tvec, 25*np.array(Susc5x5), 'ro', label='5x5')
-#ax.plot(Tvec, 100*np.array(Susc10x10), 'bo', label='10x10')
-#ax.plot(Tvec, 225*np.array(Cv15x15), 'go', label='15x15')
+#ax.plot(Tvec, Cv5x5, 'ro', label='5x5')
+#ax.plot(Tvec, Cv10x10, 'bo', label='10x10')
+#ax.plot(Tvec, Cv15x15, 'go', label='15x15')
+
+ax.plot(Tvec, Susc5x5, 'ro', label='5x5')
+ax.plot(Tvec, Susc10x10, 'bo', label='10x10')
+ax.plot(Tvec, Susc15x15, 'go', label='15x15')
 ax.legend()
