@@ -184,14 +184,14 @@ meanE210x10=np.loadtxt('Mean2E10x10Nit200000.txt', delimiter=',')
 meanE215x15=np.loadtxt('Mean2E15x15Nit225000.txt', delimiter=',')
 
 #Create data arrays for the magnetic susceptibility:
-Susc5x5 = HeatCapacity(meanMagn5x5, mean2Magn5x5, Tvec, 25)
-Susc10x10 = HeatCapacity(meanMagn10x10, mean2Magn10x10, Tvec, 100)
-Susc15x15 = HeatCapacity(meanMagn15x15, mean2Magn15x15, Tvec, 225)
+Susc5x5 = MagneticSusceptibility(meanMagn5x5, mean2Magn5x5, Tvec, 25)
+Susc10x10 = MagneticSusceptibility(meanMagn10x10, mean2Magn10x10, Tvec, 100)
+Susc15x15 = MagneticSusceptibility(meanMagn15x15, mean2Magn15x15, Tvec, 225)
 
 #Create data arrays for the heat capacity:
-Cv5x5 = MagneticSusceptibility(meanE5x5, meanE25x5, Tvec, 25)
-Cv10x10 = MagneticSusceptibility(meanE10x10, meanE210x10, Tvec, 100)
-Cv15x15 = MagneticSusceptibility(meanE15x15, meanE215x15, Tvec, 225)
+Cv5x5 = HeatCapacity(meanE5x5, meanE25x5, Tvec, 25)
+Cv10x10 = HeatCapacity(meanE10x10, meanE210x10, Tvec, 100)
+Cv15x15 = HeatCapacity(meanE15x15, meanE215x15, Tvec, 225)
 
 #Example of how to make a plot of the magnetization:
 Tvec2 = np.linspace(0.1, 5, num=1000000)
