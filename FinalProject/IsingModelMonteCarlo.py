@@ -169,7 +169,6 @@ Metropolis_Hastings(random_lattice, 1, 1, 0, 0.2, 1000, 1000, Plot=True)
 
 #In the github repository at https://github.com/oyvindjohansen/NE-155/tree/master/FinalProject
 #one can find the following .txt files with data for 5x5, 10x10, 15x15 lattices.
-#Add these files to the same directory as the .py file to load the data with the code below:
 meanMagn5x5=np.loadtxt('MCDataFiles/MeanMagn5x5Nit50000.txt', delimiter=',')
 meanMagn10x10=np.loadtxt('MCDataFiles/MeanMagn10x10Nit200000.txt', delimiter=',')
 meanMagn15x15=np.loadtxt('MCDataFiles/MeanMagn15x15Nit225000.txt', delimiter=',')
